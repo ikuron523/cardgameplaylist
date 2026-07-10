@@ -47,6 +47,7 @@ export class SolitaireScene extends Phaser.Scene {
     this.lastClickCard = null; // Used to detect double-clicks
     this.lastClickTime = 0; // Used to detect double-clicks
     this.gameOver = false; // Used to track win condition
+    this.restartConfirmDialog = null; // Confirmation dialog for restarting the game
   }
 
   preload() {
@@ -92,13 +93,13 @@ export class SolitaireScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true })
       .on('pointerdown', () => showHelpModal(this, helpMarkdown));
 
-    // New Game Button
+    // Restart Button
     this.add.text(400, 15, 'Restart', {
       fontSize: '20px',
       color: '#ffffff',
       backgroundColor: '#df0a31ff',
       padding: { x: 10, y: 3 }
-    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.scene.restart());
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.showRestartConfirmDialog());
 
     // Create the game field group
     this.fieldGroup = this.add.group();
@@ -126,6 +127,52 @@ export class SolitaireScene extends Phaser.Scene {
       this.scale.off('orientationchange', this.handleOrientation, this);
     });
     this.handleOrientation();
+  }
+
+  showRestartConfirmDialog() {
+    if (this.restartConfirmDialog) {
+      return;
+    }
+
+    this.restartConfirmDialog = this.add.container(0, 0).setDepth(4000);
+
+    const bg = this.add.rectangle(400, 300, 800, 600, 0x000000, 0.65).setInteractive();
+    const panel = this.add.rectangle(400, 300, 340, 180, 0x1f2d3a, 0.95);
+    panel.setStrokeStyle(2, 0xffffff);
+
+    const message = this.add.text(400, 265, 'Are you sure to restart?', {
+      fontSize: '23px',
+      color: '#ffffff',
+      fontStyle: 'bold',
+      align: 'center'
+    }).setOrigin(0.5);
+
+    const cancelButton = this.add.text(330, 330, 'Cancel', {
+      fontSize: '20px',
+      color: '#ffffff',
+      backgroundColor: '#7f8c8d',
+      padding: { x: 12, y: 6 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    const yesButton = this.add.text(470, 330, 'Yes', {
+      fontSize: '20px',
+      color: '#ffffff',
+      backgroundColor: '#27ae60',
+      padding: { x: 12, y: 6 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+
+    cancelButton.on('pointerdown', () => {
+      this.restartConfirmDialog?.destroy();
+      this.restartConfirmDialog = null;
+    });
+
+    yesButton.on('pointerdown', () => {
+      this.restartConfirmDialog?.destroy();
+      this.restartConfirmDialog = null;
+      this.scene.restart();
+    });
+
+    this.restartConfirmDialog.add([bg, panel, message, cancelButton, yesButton]);
   }
 
   /**
