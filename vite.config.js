@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: '/cardgameplaylist/', // GitHub Pages用（リポジトリ名）
   server: {
     port: 8080,
     open: true, // ブラウザを自動で開く
