@@ -48,6 +48,7 @@ export class SolitaireScene extends Phaser.Scene {
     this.lastClickTime = 0; // Used to detect double-clicks
     this.gameOver = false; // Used to track win condition
     this.restartConfirmDialog = null; // Confirmation dialog for restarting the game
+    this.history = []; // History stack for undo feature
   }
 
   preload() {
@@ -101,6 +102,14 @@ export class SolitaireScene extends Phaser.Scene {
       padding: { x: 10, y: 3 }
     }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.showRestartConfirmDialog());
 
+    // Undo Button
+    this.add.text(550, 15, 'Undo', {
+      fontSize: '20px',
+      color: '#ffffff',
+      backgroundColor: '#f39c12',
+      padding: { x: 10, y: 3 }
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true }).on('pointerdown', () => this.undo());
+
     // Create the game field group
     this.fieldGroup = this.add.group();
 
@@ -127,6 +136,111 @@ export class SolitaireScene extends Phaser.Scene {
       this.scale.off('orientationchange', this.handleOrientation, this);
     });
     this.handleOrientation();
+  }
+
+  saveState() {
+    const snapshot = {
+      piles: this.piles.map(pile => [...pile]),
+      foundations: this.foundations.map(foundation => [...foundation]),
+      wastepile: [...this.wastepile],
+      deckCards: [...this.deckCards],
+      cardStates: new Map()
+    };
+
+    this.cards.forEach(card => {
+      snapshot.cardStates.set(card, {
+        faceUp: card.getData('faceUp'),
+        pileIndex: card.getData('pileIndex'),
+        positionInPile: card.getData('positionInPile')
+      });
+    });
+
+    this.history.push(snapshot);
+  }
+
+  undo() {
+    if (this.history.length === 0 || this.gameOver) return;
+
+    this.draggedCardsInfo = null;
+    const snapshot = this.history.pop();
+
+    this.piles = snapshot.piles.map(pile => [...pile]);
+    this.foundations = snapshot.foundations.map(foundation => [...foundation]);
+    this.wastepile = [...snapshot.wastepile];
+    this.deckCards = [...snapshot.deckCards];
+
+    // Restore cards
+    this.cards.forEach(card => {
+      const state = snapshot.cardStates.get(card);
+      if (!state) return;
+
+      // Stop current tweens
+      this.tweens.killTweensOf(card);
+
+      card.setData('faceUp', state.faceUp);
+      card.setData('pileIndex', state.pileIndex);
+      card.setData('positionInPile', state.positionInPile);
+      card.setFrame(state.faceUp ? card.getData('cardId') : CARD_BACK_FRAME);
+
+      // Disable interactions initially
+      if (card.input) {
+        card.disableInteractive();
+      }
+    });
+
+    const deckX = 60;
+    const deckY = 100;
+    const wasteX = 160;
+    const wasteY = 100;
+    const foundationXPositions = [320, 440, 560, 680];
+    const foundationY = 100;
+    const pileXPositions = [60, 160, 260, 360, 460, 560, 660];
+    const pileY = 240;
+    const cardSpacing = 20;
+
+    // Deck cards
+    this.deckCards.forEach((card, index) => {
+      card.setDepth(100 + index);
+      this.tweens.add({ targets: card, x: deckX, y: deckY, duration: 200, ease: 'Power2.out' });
+    });
+
+    // Wastepile
+    const wasteTotal = this.wastepile.length;
+    this.wastepile.forEach((card, index) => {
+      const staggerIndex = Math.max(0, 3 - (wasteTotal - index));
+      const offset = staggerIndex * 15;
+      card.setDepth(200 + index);
+      this.tweens.add({ targets: card, x: wasteX + offset, y: wasteY, duration: 200, ease: 'Power2.out' });
+    });
+    if (wasteTotal > 0) {
+      this.makeCardInteractive(this.wastepile[wasteTotal - 1]);
+    }
+
+    // Foundations
+    this.foundations.forEach((foundation, suit) => {
+      foundation.forEach((card, index) => {
+        card.setDepth(1000 + index);
+        this.tweens.add({ targets: card, x: foundationXPositions[suit], y: foundationY, duration: 200, ease: 'Power2.out' });
+      });
+      if (foundation.length > 0) {
+        this.makeCardInteractive(foundation[foundation.length - 1]);
+      }
+    });
+
+    // Piles
+    this.piles.forEach((pile, pileIdx) => {
+      pile.forEach((card, index) => {
+        card.setDepth(index);
+        const targetX = pileXPositions[pileIdx];
+        const targetY = pileY + index * cardSpacing;
+        this.tweens.add({ targets: card, x: targetX, y: targetY, duration: 200, ease: 'Power2.out' });
+
+        // Any face up card in a pile can be interactive (draggable)
+        if (card.getData('faceUp')) {
+          this.makeCardInteractive(card);
+        }
+      });
+    });
   }
 
   showRestartConfirmDialog() {
@@ -340,6 +454,7 @@ export class SolitaireScene extends Phaser.Scene {
     }
 
     if (canMove) {
+      this.saveState();
       const pileIdx_data = card.getData('pileIndex');
 
       // Remove the card from its original location
@@ -438,6 +553,7 @@ export class SolitaireScene extends Phaser.Scene {
     if (this.deckCards.length === 0) {
       if (this.wastepile.length === 0) return;
 
+      this.saveState();
       while (this.wastepile.length > 0) {
         const card = this.wastepile.pop();
         card.setData('faceUp', false);
@@ -459,6 +575,7 @@ export class SolitaireScene extends Phaser.Scene {
       return;
     }
 
+    this.saveState();
     // Disable interaction for the current top card in the waste pile
     if (this.wastepile.length > 0) {
       this.wastepile[this.wastepile.length - 1].disableInteractive();
@@ -652,6 +769,7 @@ export class SolitaireScene extends Phaser.Scene {
     }
 
     if (isValidMove) {
+      this.saveState();
       const targetPile = this.piles[targetPileIdx];
       const cardsToMove = draggedCardsInfo.map(info => info.card);
 
@@ -844,6 +962,7 @@ export class SolitaireScene extends Phaser.Scene {
     }).setDepth(3001);
 
     bg.on('pointerdown', () => {
+      this.gameOver = false;
       this.scene.restart();
     });
   }

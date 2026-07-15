@@ -96,14 +96,28 @@ export class StartScene extends Phaser.Scene {
       .on('pointerover', () => playCircle.setFillStyle(0x1ed760))
       .on('pointerout', () => playCircle.setFillStyle(0x1db954))
       .on('pointerdown', () => {
-        if (isPlayingInfo) return; // Prevent multiple clicks
+        if (isPlayingInfo) {
+          // Stop currently playing music and sequence
+          isPlayingInfo = false;
+          playTriangle.setVisible(true);
+          pauseBars.setVisible(false);
+          if (this.currentMusic) {
+            this.currentMusic.stop();
+          }
+          if (activeBalloon) {
+            this.tweens.killTweensOf(activeBalloon);
+            activeBalloon.destroy();
+            activeBalloon = null;
+          }
+          return;
+        }
         isPlayingInfo = true;
 
         playTriangle.setVisible(false);
         pauseBars.setVisible(true);
 
-        const music = this.sound.add('uguisu');
-        music.play();
+        this.currentMusic = this.sound.add('uguisu');
+        this.currentMusic.play();
 
         const descriptions = [
           "Daifugo (Millionaire)\nGoal: Be the first to get rid of all cards!\nClassic card game with strategies like revolutions and escapes.",
@@ -141,7 +155,7 @@ export class StartScene extends Phaser.Scene {
             yoyo: true,
             hold: durationPerBalloon - 1000,
             onComplete: () => {
-              if (activeBalloon === balloon) {
+              if (activeBalloon === balloon && isPlayingInfo) {
                 balloon.destroy();
                 activeBalloon = null;
                 showBalloon(index + 1);
@@ -152,7 +166,8 @@ export class StartScene extends Phaser.Scene {
 
         showBalloon(0);
 
-        music.once('complete', () => {
+        this.currentMusic.once('complete', () => {
+          if (!isPlayingInfo) return;
           isPlayingInfo = false;
           playTriangle.setVisible(true);
           pauseBars.setVisible(false);
