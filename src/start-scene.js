@@ -122,7 +122,7 @@ export class StartScene extends Phaser.Scene {
         const descriptions = [
           "Daifugo (Millionaire)\nGoal: Be the first to get rid of all cards!\nClassic card game with strategies like revolutions and escapes.",
           "Sevens\nArrange cards in ascending/descending order of 7.\nA psychological game where you can block opponents by using pass effectively.",
-          "Solitaire (Klondike)\nClassic single player game.\nArrange cards in order of color and number\nAim for full clearing!"
+          "Solitaire (Klondike)\nClassic single player game.\nArrange cards in order of color and number.\nAim for full clearing!"
         ];
 
         // Sequence timing (42s total -> 14s each)
