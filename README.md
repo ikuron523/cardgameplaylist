@@ -2,6 +2,10 @@
 
 This project is a collection of popular card games, especially in Japan, implemented with Phaser 4 and Vite. Each game includes a help modal that explains the rules and controls, so you can learn how to play directly in the app.
 
+## GitHub Pages
+You can play this collection of card games here:
+[https://ikuron523.github.io/cardgameplaylist/](https://ikuron523.github.io/cardgameplaylist/)
+
 ## Built With
 - Node.js
 - Phaser 4
