@@ -44,4 +44,4 @@ npm run build
 ```
 
 ### License
-The source code in this project is licensed under the MIT License. The icons and other image assets are licensed under CC BY 4.0. See the LICENSE file for details.
+The source code in this project is licensed under the MIT License. The icons and other image assets are licensed under CC0 1.0 Universal License. See the LICENSE file for details.
